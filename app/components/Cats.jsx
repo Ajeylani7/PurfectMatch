@@ -1,28 +1,36 @@
+"use client";
 import React, { useEffect, useState, useRef } from "react";
-/*Importing Axios for making API calls, 
- promise-based HTTP client for JavaScript 
-that's often used to send asynchronous HTTP requests to REST endpoints */
+// Import Axios, a promise-based HTTP client for JavaScript.
+// It's used to send asynchronous HTTP requests to REST endpoints.
 import axios from "axios";
 import { Card, Button, Skeleton } from "@nextui-org/react";
 import confetti from "canvas-confetti";
 import { Image } from "@nextui-org/react";
 
-// Main functional component
+// The main functional component for displaying cats.
 export default function Cats() {
-  // State for storing cat data
-  // Try fetching from localStorage first, else initialize as an empty array
-  const [cats, setCats] = useState(
-    JSON.parse(localStorage.getItem("cats")) || []
-  );
+  // State variable for storing cat data.
+  // Initially try to fetch it from localStorage, otherwise set it as an empty array.
+  const [cats, setCats] = useState([]);
 
-  // State for tracking which cats are adopted
-  // Initialize an array of 40 elements all set to 'false'
+  // State variable for keeping track of which cats are adopted.
+  // Initialize it as an array of 40 elements, all set to 'false' (not adopted).
   const [adopted, setAdopted] = useState(new Array(40).fill(false));
 
-  // Ref to keep track of each 'Adopt' button's position
-  // Useful for positioning the confetti effect
+  // useRef to keep track of the 'Adopt' button elements.
+  // This will be used to get the button's position for the confetti animation.
   const buttonRef = useRef({});
 
+  // useEffect to run client-side logic.
+  // This useEffect will only run once after the initial render.
+  useEffect(() => {
+    // Try to get the 'cats' data from localStorage.
+    const initialCats = localStorage.getItem("cats");
+    // If found, update the 'cats' state with the data from localStorage.
+    if (initialCats) {
+      setCats(JSON.parse(initialCats));
+    }
+  }, []);
   // Effect for fetching cat data from API
   useEffect(() => {
     const fetchData = async () => {
