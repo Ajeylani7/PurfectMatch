@@ -1,6 +1,7 @@
 "use client";
 import Nav from "./components/nav";
 import Footer from "./components/footer";
+import SmoothScroller from "./components/SmoothScroller";
 import "./globals.css";
 import { Nunito } from "next/font/google";
 import { NextUIProvider } from "@nextui-org/react";
@@ -22,9 +23,11 @@ export default function RootLayout({ children }) {
         />
         <link rel="icon" href="/gallery/catfav.png" />
       </head>
+
       <body className="font-nunito">
         <NextUIProvider>
           <div>
+            <SmoothScroller />
             <Nav />
             {children}
             <Footer />
