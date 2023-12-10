@@ -34,33 +34,51 @@ export default function Cats() {
   // Effect for fetching cat data from API
   useEffect(() => {
     const fetchData = async () => {
-      // Making an API call to fetch cat data
-      const res = await axios.get(
-        "https://api.thecatapi.com/v1/images/search?limit=25",
-        {
-          headers: {
-            "x-api-key": process.env.NEXT_PUBLIC_CAT_API_KEY,
-          },
-        }
-      );
-      // Filtering out incomplete cat data and only keeping jpg and png images
-      const completeCats = res.data.filter(
-        (cat) =>
-          cat.breeds.length > 0 &&
-          (cat.url.endsWith(".jpg") || cat.url.endsWith(".png"))
-      );
-      // Merging the new cats with the existing cats in state
-      const newCats = [...cats, ...completeCats.slice(0, 40 - cats.length)];
-      // Updating the 'cats' state
-      setCats(newCats);
-      // Storing the new 'cats' state in localStorage for persistence
-      localStorage.setItem("cats", JSON.stringify(newCats));
+      try {
+        // If we already have 40 or more cats, no need to fetch new ones.
+        if (cats.length >= 40) return;
+
+        const { data } = await axios.get(
+          "https://api.thecatapi.com/v1/images/search?limit=40", // Fetch up to 40 images
+          { headers: { "x-api-key": process.env.NEXT_PUBLIC_CAT_API_KEY } }
+        );
+
+        // Create a new set with the URLs of the already loaded cats.
+        const loadedUrls = new Set(cats.map((cat) => cat.url));
+
+        // Filter out any cats that are already loaded or don't meet the criteria.
+        const newCats = data.filter((cat) => {
+          return (
+            !loadedUrls.has(cat.url) &&
+            cat.breeds?.length > 0 &&
+            (cat.url.endsWith(".jpg") || cat.url.endsWith(".png"))
+          );
+        });
+
+        // Combine the old and new cats and update the state.
+        // This ensures that we don't remove any cats that are already displayed.
+        setCats((prevCats) => {
+          const combinedCats = [...prevCats, ...newCats];
+          const uniqueCats = combinedCats.reduce((acc, current) => {
+            if (!acc.find((cat) => cat.url === current.url)) {
+              acc.push(current);
+            }
+            return acc;
+          }, []);
+
+          // Store the combined and unique cats in localStorage
+          localStorage.setItem("cats", JSON.stringify(uniqueCats));
+
+          // Return the first 40 cats to set the state
+          return uniqueCats.slice(0, 40);
+        });
+      } catch (error) {
+        console.error("Error fetching data from the API:", error);
+      }
     };
-    // Only fetch new data if we have less than 40 cats
-    if (cats.length < 40) {
-      fetchData();
-    }
-  }, [cats]);
+
+    fetchData();
+  }, [cats]); // Depend on the `cats` array to trigger the effect.
 
   // Effect to initialize 'adopted' state whenever 'cats' state changes
   useEffect(() => {
