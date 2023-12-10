@@ -35,49 +35,46 @@ export default function Cats() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // If we already have 40 or more cats, no need to fetch new ones.
-        if (cats.length >= 40) return;
+        // Calculate the number of cats needed to reach 40.
+        const catsNeeded = 40 - cats.length;
+        // If no more cats are needed, return early.
+        if (catsNeeded <= 0) return;
 
         const { data } = await axios.get(
-          "https://api.thecatapi.com/v1/images/search?limit=40", // Fetch up to 40 images
+          `https://api.thecatapi.com/v1/images/search?limit=${catsNeeded}`,
           { headers: { "x-api-key": process.env.NEXT_PUBLIC_CAT_API_KEY } }
         );
 
-        // Create a new set with the URLs of the already loaded cats.
-        const loadedUrls = new Set(cats.map((cat) => cat.url));
-
-        // Filter out any cats that are already loaded or don't meet the criteria.
+        // Filter out any duplicates or incomplete cat data.
         const newCats = data.filter((cat) => {
-          return (
-            !loadedUrls.has(cat.url) &&
+          const hasAllData =
             cat.breeds?.length > 0 &&
-            (cat.url.endsWith(".jpg") || cat.url.endsWith(".png"))
+            (cat.url.endsWith(".jpg") || cat.url.endsWith(".png"));
+          const isNotLoaded = !cats.some(
+            (existingCat) => existingCat.url === cat.url
           );
+          return hasAllData && isNotLoaded;
         });
 
-        // Combine the old and new cats and update the state.
-        // This ensures that we don't remove any cats that are already displayed.
-        setCats((prevCats) => {
-          const combinedCats = [...prevCats, ...newCats];
-          const uniqueCats = combinedCats.reduce((acc, current) => {
-            if (!acc.find((cat) => cat.url === current.url)) {
-              acc.push(current);
-            }
-            return acc;
-          }, []);
-
-          // Store the combined and unique cats in localStorage
-          localStorage.setItem("cats", JSON.stringify(uniqueCats));
-
-          // Return the first 40 cats to set the state
-          return uniqueCats.slice(0, 40);
-        });
+        // Update the state with the newly fetched cats, if any.
+        if (newCats.length > 0) {
+          setCats((prevCats) => {
+            // Append new cats to the existing list, ensuring no duplicates.
+            const updatedCats = [...prevCats, ...newCats].slice(0, 40);
+            // Update localStorage with the new list of cats.
+            localStorage.setItem("cats", JSON.stringify(updatedCats));
+            return updatedCats;
+          });
+        }
       } catch (error) {
         console.error("Error fetching data from the API:", error);
       }
     };
 
-    fetchData();
+    // Trigger the fetchData function if we have less than 40 cats.
+    if (cats.length < 40) {
+      fetchData();
+    }
   }, [cats]); // Depend on the `cats` array to trigger the effect.
 
   // Effect to initialize 'adopted' state whenever 'cats' state changes
