@@ -34,28 +34,37 @@ export default function Cats() {
   // Effect for fetching cat data from API
   useEffect(() => {
     const fetchData = async () => {
-      // Making an API call to fetch cat data
-      const res = await axios.get(
-        "https://api.thecatapi.com/v1/images/search?limit=100",
-        {
-          headers: {
-            "x-api-key": process.env.NEXT_PUBLIC_CAT_API_KEY,
-          },
-        }
-      );
-      // Filtering out incomplete cat data and only keeping jpg and png images
-      const completeCats = res.data.filter(
-        (cat) =>
-          cat.breeds.length > 0 &&
-          (cat.url.endsWith(".jpg") || cat.url.endsWith(".png"))
-      );
-      // Merging the new cats with the existing cats in state
-      const newCats = [...cats, ...completeCats.slice(0, 40 - cats.length)];
-      // Updating the 'cats' state
-      setCats(newCats);
-      // Storing the new 'cats' state in localStorage for persistence
-      localStorage.setItem("cats", JSON.stringify(newCats));
+      try {
+        // Making an API call to fetch cat data
+        const res = await axios.get(
+          "https://api.thecatapi.com/v1/images/search?limit=100",
+          {
+            headers: {
+              "x-api-key": process.env.NEXT_PUBLIC_CAT_API_KEY,
+            },
+          }
+        );
+
+        // Filtering out incomplete cat data and only keeping jpg and png images
+        const completeCats = res.data.filter(
+          (cat) =>
+            Array.isArray(cat.breeds) &&
+            cat.breeds.length > 0 &&
+            typeof cat.url === "string" &&
+            (cat.url.endsWith(".jpg") || cat.url.endsWith(".png"))
+        );
+
+        // Merging the new cats with the existing cats in state
+        const newCats = [...cats, ...completeCats.slice(0, 40 - cats.length)];
+        // Updating the 'cats' state
+        setCats(newCats);
+        // Storing the new 'cats' state in localStorage for persistence
+        localStorage.setItem("cats", JSON.stringify(newCats));
+      } catch (error) {
+        console.error("Error fetching data from the API:", error);
+      }
     };
+
     // Only fetch new data if we have less than 40 cats
     if (cats.length < 40) {
       fetchData();
